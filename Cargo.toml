@@ -1,0 +1,51 @@
+[package]
+name = "apple-intelligence-models"
+version = "0.2.0"
+edition = "2021"
+rust-version = "1.85"
+description = "AIMX: safe Rust bindings for Apple's on-device Apple Intelligence language models"
+license = "MPL-2.0"
+repository = "https://github.com/hghalebi/AIMX"
+documentation = "https://docs.rs/apple-intelligence-models"
+keywords = ["apple", "ai", "macos", "aimx", "llm"]
+categories = ["api-bindings", "asynchronous"]
+readme = "README.md"
+include = [
+    "src/**",
+    "tests/**",
+    "examples/**",
+    "benches/**",
+    "references/**",
+    "scripts/**",
+    "bridge.swift",
+    "build.rs",
+    "README.md",
+    "TUTORIAL.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "LICENSE",
+]
+
+[lib]
+name = "aimx"
+path = "src/lib.rs"
+
+[dependencies]
+thiserror = "2"
+futures-core = "0.3"
+futures-channel = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[dev-dependencies]
+criterion = "0.5"
+futures-executor = "0.3"
+proptest = "1"
+
+[build-dependencies]
+thiserror = "2"
+
+[[bench]]
+name = "core"
+harness = false
