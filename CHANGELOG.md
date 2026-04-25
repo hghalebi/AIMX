@@ -4,7 +4,23 @@ All notable changes to AIMX (`apple-intelligence-models`, imported as `aimx`) ar
 
 This project follows semantic versioning.
 
-## 0.2.0 - Unreleased
+## 0.2.1 - 2026-04-25
+
+### Added
+
+- Original AIMX SVG logo and README placement.
+- GitHub Actions CI for Rust library checks across Linux and macOS.
+- GitHub Pages workflow that builds and deploys rustdoc from `main`.
+- crates.io release workflow using trusted publishing from version tags.
+
+### Changed
+
+- Package metadata now includes repository assets so the README logo ships with
+  future crate packages.
+- Release documentation now points maintainers to the GitHub Actions release
+  path instead of local publishing as the default.
+
+## 0.2.0 - 2026-04-25
 
 ### Added
 
@@ -17,11 +33,13 @@ This project follows semantic versioning.
 - Criterion benchmarks for deterministic Rust-layer performance boundaries.
 - Crate-level rustdoc with platform requirements, examples, error handling, panic behavior, and safety notes.
 - An extensive [TUTORIAL.md](TUTORIAL.md) covering availability checks, one-shot responses, sessions, streaming, structured output, tools, testing, and troubleshooting.
+- Repository documentation style guide in [references/documentation-style.md](references/documentation-style.md).
 - `examples/quickstart.rs` and `examples/agent_use_cases.rs`.
 
 ### Changed
 
 - The crate identity is now AIMX: package `apple-intelligence-models`, Rust import `aimx`.
+- README, tutorial, contributing guide, and crate-level rustdoc now use a more official Rust documentation structure with a clearer teaching sequence.
 - `ResponseStream` now yields typed `ResponseText` chunks instead of raw `String` values.
 - Older names such as `SystemLanguageModel`, `FoundationModels`, `Client`, `Session`, `ResponseSchema`, `Schema`, and `UnavailabilityReason` remain as compatibility aliases.
 - Tool handlers now return `ToolResult`, which is `Result<ToolOutput, ToolCallError>`.

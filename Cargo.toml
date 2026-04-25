@@ -1,6 +1,6 @@
 [package]
 name = "apple-intelligence-models"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 rust-version = "1.85"
 description = "AIMX: safe Rust bindings for Apple's on-device Apple Intelligence language models"
@@ -11,6 +11,7 @@ keywords = ["apple", "ai", "macos", "aimx", "llm"]
 categories = ["api-bindings", "asynchronous"]
 readme = "README.md"
 include = [
+    "assets/**",
     "src/**",
     "tests/**",
     "examples/**",

@@ -1,7 +1,8 @@
 # AIMX Tutorial
 
-This tutorial walks through building a small Rust assistant on top of AIMX,
-the `apple-intelligence-models` crate imported as `aimx`.
+This tutorial teaches AIMX the way a good Rust crate should be learned: one
+small invariant at a time, with examples that make the failure modes visible.
+AIMX is the `apple-intelligence-models` package, imported in Rust as `aimx`.
 
 By the end, you will have code that can:
 
@@ -13,6 +14,23 @@ By the end, you will have code that can:
 6. Register a Rust tool that the model can call.
 7. Run a tested gallery of agent use cases.
 8. Handle unavailable hardware, invalid input, and model errors without panics.
+
+## The Big Idea
+
+The simplest way to understand AIMX is:
+
+> Build a safe Rust boundary around the local Apple Intelligence model.
+
+That boundary has three jobs.
+
+1. Check availability before the user waits on work that cannot run.
+2. Convert raw text, numbers, schemas, and tool arguments into typed Rust values.
+3. Return typed errors instead of panicking when the platform, input, or model
+   response is not usable.
+
+This is the same shape you see in the standard Rust documentation: start with a
+minimal working example, then explain the type that makes the example safe, then
+show how errors are reported.
 
 ## Naming Map
 
@@ -31,6 +49,23 @@ framework names serve different purposes.
 Use `AppleIntelligenceModels` in new application code. Compatibility aliases
 such as `SystemLanguageModel`, `FoundationModels`, and `Client` still compile,
 but examples and docs use the AIMX-first naming.
+
+## Learning Path
+
+The tutorial is ordered so each step introduces one new idea:
+
+| Step | New concept | Why it matters |
+|---|---|---|
+| 1 | Availability | Avoid work the local platform cannot complete. |
+| 2 | One-shot response | Learn the smallest async call. |
+| 3 | Session builder | Put instructions and defaults in one visible place. |
+| 4 | Typed options | Keep raw primitives at input boundaries. |
+| 5 | Streaming | Handle incremental model output. |
+| 6 | Structured output | Ask for JSON that maps to Rust types. |
+| 7 | Tools | Let the model call recoverable Rust functions. |
+| 8 | Tested agent examples | Keep examples deterministic even without Apple hardware. |
+| 9 | Error handling | Turn platform and input failures into user-facing actions. |
+| 10 | Integration | Combine the pieces into a small application. |
 
 ## Prerequisites
 
@@ -69,7 +104,7 @@ Add AIMX and a small async runtime to `Cargo.toml`:
 
 ```toml
 [dependencies]
-aimx = { package = "apple-intelligence-models", version = "0.2" }
+aimx = { package = "apple-intelligence-models", version = "0.2.1" }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 futures-util = "0.3"
 serde = { version = "1", features = ["derive"] }
@@ -144,8 +179,8 @@ async fn main() -> Result<(), Error> {
 }
 ```
 
-This is the right API for quick commands, checks, and scripts. For applications
-with instructions, tools, or repeated turns, build a session instead.
+This is the right API for quick commands, checks, and scripts. If your program
+needs instructions, tools, or repeated turns, build a session instead.
 
 ## Step 3: Build A Stateful Session
 
@@ -334,8 +369,9 @@ let property = GenerationSchemaProperty::new("details", GenerationSchemaProperty
 
 ## Step 7: Register A Rust Tool
 
-Tools let the model ask your Rust code for data while forming a response. A tool
-has a name, a description, a schema for its arguments, and a handler.
+Tools let the model ask your Rust code for data while forming a response. The
+safe mental model is to treat a tool like a small API endpoint: it has a name, a
+description, a schema for its arguments, and a handler that can fail normally.
 
 The handler returns `ToolOutput` on success or `ToolCallError` on failure. That
 keeps tool failures inside the model/tool protocol instead of panicking.
@@ -643,6 +679,8 @@ Before publishing or shipping an AIMX integration:
 After this tutorial, read:
 
 - [README.md](README.md) for the concise API overview.
+- [references/documentation-style.md](references/documentation-style.md) for the
+  style expected in repository docs and public rustdoc.
 - [references/async-architecture.md](references/async-architecture.md) for the
   callback, cancellation, stream, and tool-handler boundaries.
 - [references/policy.md](references/policy.md) for the primitive-boundary policy.

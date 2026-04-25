@@ -25,6 +25,23 @@
 //! production code should usually build a [`LanguageModelSession`] so instructions, tools, and
 //! defaults are visible in one place.
 //!
+//! # Learning model
+//!
+//! AIMX is easiest to learn as three decisions:
+//!
+//! 1. Ask whether Apple Intelligence is available with [`availability`] or
+//!    [`AppleIntelligenceModels::availability`].
+//! 2. Choose either a one-shot helper such as [`respond`] or a reusable
+//!    [`LanguageModelSession`].
+//! 3. Convert application input into typed boundaries such as [`Prompt`],
+//!    [`SystemInstructions`], [`Temperature`], [`MaxTokens`], and
+//!    [`GenerationSchema`] before it reaches the Swift bridge.
+//!
+//! This is the main safety rule of the crate. Raw strings and numbers can enter
+//! at your program boundary; after that, AIMX carries meaning with Rust types
+//! and returns [`Error`] when a value cannot safely cross into
+//! FoundationModels.
+//!
 //! # Platform requirements
 //!
 //! | Requirement | Value |
@@ -176,10 +193,12 @@
 //!
 //! # Documentation style
 //!
-//! The public docs intentionally follow the shape recommended by the
-//! [rustdoc book] and the [Rust API Guidelines]: crate-level overview, tested
-//! examples where possible, intra-doc links, and explicit error/panic/safety
-//! sections for fallible or boundary-sensitive APIs.
+//! The public docs intentionally follow the shape recommended by the [rustdoc
+//! book] and the [Rust API Guidelines]: a crate-level overview, examples that
+//! compile where possible, intra-doc links, and explicit error, panic, and
+//! safety sections for fallible or boundary-sensitive APIs. Conceptual docs use
+//! the same teaching order as the tutorial: introduce one idea, show the
+//! smallest useful example, then name the invariant that keeps the example safe.
 //!
 //! [FoundationModels]: https://developer.apple.com/documentation/foundationmodels
 //! [rustdoc book]: https://doc.rust-lang.org/rustdoc/how-to-write-documentation.html
@@ -203,7 +222,9 @@
 )]
 
 use std::convert::Infallible;
-use std::ffi::{CStr, CString, NulError};
+#[cfg(aimx_bridge)]
+use std::ffi::CStr;
+use std::ffi::{CString, NulError};
 use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context as StdContext, Poll};
@@ -757,6 +778,7 @@ impl From<&str> for ToolCallError {
 pub type ToolResult = Result<ToolOutput, ToolCallError>;
 
 type ModelTextResult = Result<ResponseText, GenerationError>;
+#[cfg(aimx_bridge)]
 type StreamSender = mpsc::UnboundedSender<ModelTextResult>;
 type StreamReceiver = mpsc::UnboundedReceiver<ModelTextResult>;
 type ToolHandlerBox = Box<dyn ToolHandler>;
@@ -949,12 +971,14 @@ impl GenerationOptions {
     }
 }
 
+#[cfg_attr(not(any(test, aimx_bridge)), allow(dead_code))]
 #[derive(Debug, Clone, Copy, Default)]
 struct GenerationConfig {
     temperature: Option<Temperature>,
     max_tokens: Option<MaxTokens>,
 }
 
+#[cfg_attr(not(any(test, aimx_bridge)), allow(dead_code))]
 impl GenerationConfig {
     fn ffi_temperature(self) -> f64 {
         self.temperature.map(Temperature::as_f64).unwrap_or(-1.0)
@@ -1342,9 +1366,13 @@ impl ToolsContext {
 
 // ─── Availability ──────────────────────────────────────────────────────────────
 
+#[cfg_attr(not(aimx_bridge), allow(dead_code))]
 const FM_AVAILABLE: i32 = 0;
+#[cfg_attr(not(aimx_bridge), allow(dead_code))]
 const FM_DEVICE_NOT_ELIGIBLE: i32 = 1;
+#[cfg_attr(not(aimx_bridge), allow(dead_code))]
 const FM_NOT_ENABLED: i32 = 2;
+#[cfg_attr(not(aimx_bridge), allow(dead_code))]
 const FM_MODEL_NOT_READY: i32 = 3;
 
 /// Returns `true` if Apple Intelligence is available and ready on this device.

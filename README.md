@@ -1,16 +1,26 @@
 # AIMX (`apple-intelligence-models`)
 
+<p align="center">
+  <img src="assets/aimx-logo.svg" alt="AIMX logo" width="520">
+</p>
+
 [![Crates.io](https://img.shields.io/crates/v/apple-intelligence-models.svg)](https://crates.io/crates/apple-intelligence-models)
 [![Documentation](https://docs.rs/apple-intelligence-models/badge.svg)](https://docs.rs/apple-intelligence-models)
 [![License: MPL-2.0](https://img.shields.io/badge/license-MPL--2.0-blue.svg)](LICENSE)
 [![CI](https://github.com/hghalebi/AIMX/actions/workflows/ci.yml/badge.svg)](https://github.com/hghalebi/AIMX/actions/workflows/ci.yml)
+[![Docs](https://github.com/hghalebi/AIMX/actions/workflows/docs.yml/badge.svg)](https://github.com/hghalebi/AIMX/actions/workflows/docs.yml)
 
 AIMX is a safe Rust library for Apple's [FoundationModels] on-device language
-model framework, also known as Apple Intelligence. The package is published as
-`apple-intelligence-models` and imported as `aimx`.
+model framework, also known as Apple Intelligence.
 
-The model runs locally on supported Apple hardware. Prompts and responses do not
-require API keys, network calls, or a hosted inference provider.
+The package is published as `apple-intelligence-models` and imported as `aimx`.
+The model runs locally on supported Apple hardware, so a basic application does
+not need an API key, a network request, or a hosted inference provider.
+
+The documentation is written in the style of official Rust crate docs: start
+with the smallest correct example, name every boundary, and document the errors
+that users can recover from. The tutorial then teaches the same API one concept
+at a time.
 
 ## Status
 
@@ -33,13 +43,60 @@ built, or if Apple Intelligence is not available at runtime, model APIs return
 | System setting | Apple Intelligence enabled |
 | Build tool for live bridge | Xcode with the macOS 26 SDK |
 
+## How To Read The Docs
+
+If you are new to AIMX, read the docs in this order:
+
+1. Run the [Quick Start](#quick-start) to see the smallest complete program.
+2. Read [The Mental Model](#the-mental-model) to understand the core types.
+3. Use [Builder-Style Sessions](#builder-style-sessions) for real applications.
+4. Follow [TUTORIAL.md](TUTORIAL.md) when you want a guided, course-style path.
+5. Browse the generated rustdoc site at
+   [hghalebi.github.io/AIMX](https://hghalebi.github.io/AIMX/).
+6. Use the files in [`references/`](references) for implementation details.
+
+## Local CI With `act`
+
+You can run the GitHub Actions workflows locally with [`act`](https://github.com/nektos/act).
+
+The repo includes a checked-in [`.actrc`](.actrc) so `act` uses a Linux image
+that matches the workflows.
+
+Useful commands:
+
+```sh
+act workflow_dispatch -W .github/workflows/act.yml -j quality
+act workflow_dispatch -W .github/workflows/act.yml -j msrv
+```
+
+Notes:
+
+- The local workflow keeps only the Linux jobs that work well in Docker.
+- The production workflows stay unchanged for GitHub Actions.
+- If you want to exercise docs generation locally too, use the `quality` job in `.github/workflows/act.yml`.
+
+## The Mental Model
+
+AIMX has three layers:
+
+| Layer | Rust type | What it teaches |
+|---|---|---|
+| Availability | `availability`, `AppleIntelligenceModels::availability` | Check whether the local model can run before doing work. |
+| Session | `LanguageModelSession` | Keep instructions, options, tools, and conversation state together. |
+| Boundaries | `Prompt`, `SystemInstructions`, `Temperature`, `MaxTokens`, `GenerationSchema` | Convert raw input into typed values before it crosses FFI or model boundaries. |
+
+The important idea is simple: raw input is allowed at the edge of your program,
+but AIMX turns it into typed Rust values before it reaches Apple
+FoundationModels. That keeps failures recoverable and makes examples behave the
+same way on supported and unsupported hosts.
+
 ## Install
 
 Add the crate to `Cargo.toml`:
 
 ```toml
 [dependencies]
-aimx = { package = "apple-intelligence-models", version = "0.2" }
+aimx = { package = "apple-intelligence-models", version = "0.2.1" }
 ```
 
 The crate is runtime-agnostic. Use the async executor already present in your
@@ -49,7 +106,7 @@ application. The examples below use Tokio and `futures-util` for convenience:
 [dependencies]
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 futures-util = "0.3"
-aimx = { package = "apple-intelligence-models", version = "0.2" }
+aimx = { package = "apple-intelligence-models", version = "0.2.1" }
 ```
 
 ## Quick Start
@@ -187,11 +244,12 @@ typed boundaries instead of raw strings.
 
 ```rust
 use aimx::{
-    AppleIntelligenceModels, GenerationSchema, GenerationSchemaProperty, GenerationSchemaPropertyType, ToolDefinition, ToolOutput,
+    AppleIntelligenceModels, Error, GenerationSchema, GenerationSchemaProperty,
+    GenerationSchemaPropertyType, ToolCallError, ToolDefinition, ToolOutput,
 };
 use serde_json::Value;
 
-async fn run() -> Result<(), aimx::Error> {
+async fn run() -> Result<(), Error> {
     let weather = ToolDefinition::builder(
         "get_weather",
         "Return current weather for a city",
@@ -199,7 +257,11 @@ async fn run() -> Result<(), aimx::Error> {
             .property(GenerationSchemaProperty::new("city", GenerationSchemaPropertyType::String)),
     )
     .handler(|args: Value| {
-        let city = args["city"].as_str().unwrap_or("unknown");
+        let city = args
+            .get("city")
+            .and_then(Value::as_str)
+            .ok_or_else(|| ToolCallError::new("missing string field: city"))?;
+
         Ok(ToolOutput::from(format!("{city}: 22 C, sunny")))
     });
 
@@ -263,7 +325,7 @@ cargo test
 cargo test --examples
 cargo clippy --all-targets --all-features -- -D warnings
 RUSTDOCFLAGS="-D warnings" cargo doc --no-deps
-cargo publish --dry-run
+cargo package
 ```
 
 Run the deterministic Rust-layer performance benchmarks:
@@ -292,11 +354,28 @@ See [references/async-architecture.md](references/async-architecture.md) for the
 callback, channel, cancellation, and tool-handler panic boundaries.
 See [references/performance.md](references/performance.md) for the benchmark
 scope and commands.
+See [references/documentation-style.md](references/documentation-style.md) for
+the repository documentation style guide.
+
+## Release Automation
+
+GitHub Actions owns the normal release path:
+
+1. Pull requests run formatting, tests, examples, clippy, rustdoc, benchmark
+   compilation, package verification, and primitive-boundary checks.
+2. Pushes to `main` build and deploy the rustdoc site to GitHub Pages.
+3. Version tags such as `v0.2.1` publish the matching Cargo version to
+   crates.io after the same release checks pass.
+
+The crates.io release workflow uses trusted publishing. Configure the crate on
+crates.io to trust repository `hghalebi/AIMX`, workflow `release.yml`, and
+environment `crates-io`.
 
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). Changes should keep the public API
-documented, typed at FFI boundaries, and safe on unsupported hosts.
+documented, typed at FFI boundaries, safe on unsupported hosts, and consistent
+with the repository documentation style.
 
 ## License
 

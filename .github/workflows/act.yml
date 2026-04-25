@@ -1,17 +1,10 @@
-name: CI
+name: Local CI
 
 on:
-  pull_request:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 permissions:
   contents: read
-
-concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   quality:
@@ -60,38 +53,6 @@ jobs:
 
       - name: Package contents
         run: cargo package --list
-
-      - name: Package verification
-        run: cargo package
-
-  macos:
-    name: macOS bridge fallback
-    runs-on: macos-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Install Rust stable
-        run: |
-          rustup toolchain install stable --profile minimal
-          rustup default stable
-
-      - name: Cache Cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-stable-cargo-${{ hashFiles('Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-stable-cargo-
-
-      - name: Test library
-        run: cargo test
-
-      - name: Test examples
-        run: cargo test --examples
 
       - name: Package verification
         run: cargo package

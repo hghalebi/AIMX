@@ -1,0 +1,75 @@
+name: Docs
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/docs.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "README.md"
+      - "src/**"
+      - "assets/**"
+      - "references/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build rustdoc site
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Rust stable
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-docs-cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-docs-cargo-
+
+      - name: Build rustdoc
+        run: RUSTDOCFLAGS="-D warnings" cargo doc --no-deps
+
+      - name: Add Pages index
+        run: |
+          printf '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=aimx/"><link rel="canonical" href="aimx/"><title>AIMX docs</title>' > target/doc/index.html
+          touch target/doc/.nojekyll
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: target/doc
+
+  deploy:
+    name: Deploy GitHub Pages
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

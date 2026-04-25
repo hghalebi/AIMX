@@ -3,6 +3,9 @@
 use std::process::Command;
 
 fn main() {
+    // Cargo validates custom cfg names before target-specific build logic runs.
+    println!("cargo::rustc-check-cfg=cfg(aimx_bridge)");
+
     if let Err(error) = try_main() {
         println!(
             "cargo::warning=aimx: build script setup failed: {error}. \
@@ -27,8 +30,6 @@ fn try_main() -> Result<(), BuildScriptError> {
     let lib_path = format!("{out_dir}/libaimx_bridge.a");
 
     println!("cargo:rerun-if-changed=bridge.swift");
-    // Declare the custom cfg flag so rustc doesn't warn about it on any host.
-    println!("cargo::rustc-check-cfg=cfg(aimx_bridge)");
 
     let status = Command::new("xcrun")
         .args([
