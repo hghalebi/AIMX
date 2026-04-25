@@ -367,9 +367,10 @@ GitHub Actions owns the normal release path:
 3. Version tags such as `v0.2.1` publish the matching Cargo version to
    crates.io after the same release checks pass.
 
-The crates.io release workflow uses trusted publishing. Configure the crate on
-crates.io to trust repository `hghalebi/AIMX`, workflow `release.yml`, and
-environment `crates-io`.
+The crates.io release workflow prefers trusted publishing. Configure the crate
+on crates.io to trust repository `hghalebi/AIMX`, workflow `release.yml`, and
+environment `crates-io`. The workflow also accepts a `CARGO_REGISTRY_TOKEN`
+secret as a fallback until trusted publishing is fully configured.
 
 ## Contributing
 

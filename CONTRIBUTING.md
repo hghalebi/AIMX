@@ -87,5 +87,6 @@ The crates.io release workflow uses trusted publishing. In crates.io, configure
 - workflow: `release.yml`
 - environment: `crates-io`
 
-Do not store a long-lived crates.io API token in GitHub secrets unless trusted
-publishing is unavailable.
+The workflow keeps a `CARGO_REGISTRY_TOKEN` secret fallback for environments
+where trusted publishing has not been configured yet. Prefer trusted publishing
+and remove the fallback once crates.io enforces it for this crate.
